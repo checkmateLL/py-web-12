@@ -1,0 +1,20 @@
+[tool.poetry]
+name = "py-web-11"
+version = "0.1.0"
+description = "Homework module 11 (web-dev)"
+authors = ["checkmateLL <saoirse.girl47@gamil.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10"
+fastapi = "^0.115.5"
+uvicorn = {extras = ["standard"], version = "^0.32.0"}
+sqlalchemy = "^2.0.36"
+psycopg2 = "^2.9.10"
+python-multipart = "^0.0.17"
+alembic = "^1.14.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
