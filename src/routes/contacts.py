@@ -1,56 +1,54 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, HTTPException, Depends, status
 from sqlalchemy.orm import Session
-from src.database.db import SessionLocal
-from src.database.models import User
-from src.database.db import get_db 
-from src.schemas import ContactCreate, ContactUpdate, ContactResponse
-from src.repository import contacts
 from typing import List
-from src.utils import get_current_user
-from src.database.models import User
-from fastapi.responses import HTMLResponse
-from fastapi.templating import Jinja2Templates
-from starlette.requests import Request
 
-router = APIRouter()
-templates = Jinja2Templates(directory="static")
+from src.database.db import get_db
+from src.models import Contact
+from src.schemas import ContactCreate, ContactResponse
+from src.services.auth_service import get_current_user  
+from src.models import User
 
-# Serve contacts management page
-@router.get("/contacts", response_class=HTMLResponse)
-def contacts_page(request: Request, current_user: User = Depends(get_current_user)):
-    return templates.TemplateResponse("contacts.html", {"request": request, "user": current_user.dict()})
+router = APIRouter(prefix='/contacts', tags=["contacts"])
 
-# Create a new contact
-@router.post("/contacts/", response_model=ContactResponse, status_code=201)
-def create_contact(contact: ContactCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    new_contact = contacts.create_contact(db, contact, current_user.id)
+@router.post("/", response_model=ContactResponse, status_code=status.HTTP_201_CREATED)
+async def create_contact(body: ContactCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    new_contact = Contact(**body.dict(), owner_id=current_user.id)
+    db.add(new_contact)
+    db.commit()
+    db.refresh(new_contact)
     return new_contact
 
-# Get all contacts for the current user
-@router.get("/contacts/all", response_model=List[ContactResponse])
-def get_all_contacts(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    return contacts.get_contacts(db, current_user.id)
+@router.get("/", response_model=List[ContactResponse])
+async def get_contacts(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    contacts = db.query(Contact).filter(Contact.owner_id == current_user.id).all()
+    return contacts
 
-# Get a specific contact by ID
-@router.get("/contacts/{contact_id}", response_model=ContactResponse)
-def get_contact(contact_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    db_contact = contacts.get_contact(db, contact_id, current_user.id)
-    if db_contact is None:
-        raise HTTPException(status_code=404, detail="Contact not found")
-    return db_contact
+@router.get("/{contact_id}", response_model=ContactResponse)
+async def get_contact(contact_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    contact = db.query(Contact).filter(Contact.id == contact_id, Contact.owner_id == current_user.id).first()
+    if not contact:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found")
+    return contact
 
-# Update a contact
-@router.put("/contacts/{contact_id}", response_model=ContactResponse)
-def update_contact(contact_id: int, contact: ContactUpdate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    updated_contact = contacts.update_contact(db, contact_id, contact, current_user.id)
-    if updated_contact is None:
-        raise HTTPException(status_code=404, detail="Contact not found")
-    return updated_contact
+@router.put("/{contact_id}", response_model=ContactResponse)
+async def update_contact(contact_id: int, body: ContactCreate, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    contact = db.query(Contact).filter(Contact.id == contact_id, Contact.owner_id == current_user.id).first()
+    if not contact:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found")
 
-# Delete a contact
-@router.delete("/contacts/{contact_id}", response_model=ContactResponse)
-def delete_contact(contact_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
-    deleted_contact = contacts.delete_contact(db, contact_id, current_user.id)
-    if deleted_contact is None:
-        raise HTTPException(status_code=404, detail="Contact not found")
-    return deleted_contact
+    for key, value in body.dict().items():
+        setattr(contact, key, value)
+
+    db.commit()
+    db.refresh(contact)
+    return contact
+
+@router.delete("/{contact_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_contact(contact_id: int, db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+    contact = db.query(Contact).filter(Contact.id == contact_id, Contact.owner_id == current_user.id).first()
+    if not contact:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Contact not found")
+
+    db.delete(contact)
+    db.commit()
+    return None

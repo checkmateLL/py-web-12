@@ -6,7 +6,7 @@ from src.routes import auth, contacts
 app = FastAPI()
 
 # Include routers for authentication and contacts
-app.include_router(auth.router, prefix="/auth")
+app.include_router(auth.router, prefix="/api")
 app.include_router(contacts.router, prefix="/api")
 
 # Serve static HTML files - adjusting path to the static folder correctly
