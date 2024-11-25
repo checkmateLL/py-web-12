@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Date, ForeignKey
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, func
 from sqlalchemy.orm import relationship
 from src.database.db import Base
 
@@ -7,7 +7,10 @@ class User(Base):
 
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True)
-    hashed_password = Column(String)
+    password = Column(String(128), nullable=False)
+    created_at = Column(DateTime, default=func.now())
+    refresh_token = Column(String, nullable=True)
+
     contacts = relationship("Contact", back_populates="owner")
 
 class Contact(Base):
@@ -18,7 +21,7 @@ class Contact(Base):
     last_name = Column(String, index=True)
     email = Column(String, unique=True, index=True)
     phone = Column(String)
-    birthday = Column(Date)
+    birthday = Column(DateTime)
     additional_info = Column(String, nullable=True)
     owner_id = Column(Integer, ForeignKey("users.id"))
     owner = relationship("User", back_populates="contacts")

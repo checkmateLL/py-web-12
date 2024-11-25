@@ -1,54 +1,75 @@
+<!-- index.html: Реєстрація або вхід користувача -->
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Contacts API</title>
+    <title>Contacts API - Register or Login</title>
     <script>
-        async function createContact() {
-            const contact = {
-                first_name: document.getElementById("first_name").value,
-                last_name: document.getElementById("last_name").value,
-                email: document.getElementById("email").value,
-                phone: document.getElementById("phone").value,
-                birthday: document.getElementById("birthday").value,
-                additional_info: document.getElementById("additional_info").value
+        async function registerUser() {
+            const user = {
+                email: document.getElementById("register_email").value,
+                password: document.getElementById("register_password").value
             };
-            const response = await fetch('/api/contacts/', {
+            const response = await fetch('/auth/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
-                body: JSON.stringify(contact)
+                body: JSON.stringify(user)
             });
-            const result = await response.json();
-            console.log(result);
-            clearForm();
+
+            if (response.ok) {
+                window.location.href = "/static/contacts.html";  // Redirect to contacts page after successful registration
+            } else {
+                const error = await response.json();
+                alert(`Error: ${error.detail}`);
+            }
         }
 
+        async function loginUser() {
+            const email = document.getElementById("login_email").value;
+            const password = document.getElementById("login_password").value;
 
-        function clearForm() {
-            document.getElementById("first_name").value = "";
-            document.getElementById("last_name").value = "";
-            document.getElementById("email").value = "";
-            document.getElementById("phone").value = "";
-            document.getElementById("birthday").value = "";
-            document.getElementById("additional_info").value = "";
+            const response = await fetch('/auth/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded'
+                },
+                body: new URLSearchParams({
+                    'username': email,
+                    'password': password
+                })
+            });
+
+            if (response.ok) {
+                window.location.href = "/static/contacts.html";  // Redirect to contacts page after successful login
+            } else {
+                try {
+                    const error = await response.json();
+                    alert(`Error: ${error.detail || 'Invalid credentials'}`);
+                } catch (e) {
+                    alert('Error: Unable to parse server response');
+                }
+            }
         }
     </script>
 </head>
+
 <body>
     <h1>Contacts API</h1>
     <div>
-        <h3>Create Contact</h3>
-        <input type="text" id="first_name" placeholder="First Name"><br>
-        <input type="text" id="last_name" placeholder="Last Name"><br>
-        <input type="email" id="email" placeholder="Email"><br>
-        <input type="text" id="phone" placeholder="Phone"><br>
-        <input type="date" id="birthday" placeholder="Birthday"><br>
-        <input type="text" id="additional_info" placeholder="Additional Info"><br>
-        <button onclick="createContact()">Create Contact</button>
+        <h3>Register</h3>
+        <input type="email" id="register_email" placeholder="Email"><br>
+        <input type="password" id="register_password" placeholder="Password"><br>
+        <button onclick="registerUser()">Register</button>
+    </div>
+    <div>
+        <h3>Login</h3>
+        <input type="email" id="login_email" placeholder="Email"><br>
+        <input type="password" id="login_password" placeholder="Password"><br>
+        <button onclick="loginUser()">Login</button>
     </div>
 </body>
 

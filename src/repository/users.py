@@ -1,17 +1,23 @@
 from sqlalchemy.orm import Session
 from src.database.models import User
-from src.schemas import UserCreate
-from passlib.context import CryptContext
+from src.schemas import UserModel
 
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-def get_user_by_email(db: Session, email: str):
+def get_user_by_email(email: str, db: Session) -> User:
     return db.query(User).filter(User.email == email).first()
 
-def create_user(db: Session, user: UserCreate):
-    hashed_password = pwd_context.hash(user.password)
-    db_user = User(email=user.email, hashed_password=hashed_password)
-    db.add(db_user)
+
+def create_user(body: UserModel, db: Session) -> User:
+    new_user = User(
+        email=body.email,
+        password=body.password  # Make sure this password is hashed before passing it here
+    )
+    db.add(new_user)
     db.commit()
-    db.refresh(db_user)
-    return db_user
+    db.refresh(new_user)
+    return new_user
+
+
+def update_token(user: User, token: str | None, db: Session) -> None:
+    user.refresh_token = token
+    db.commit()

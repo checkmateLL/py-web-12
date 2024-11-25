@@ -1,11 +1,18 @@
+import os
 from fastapi import FastAPI
-from src.routes import contacts, auth
 from fastapi.staticfiles import StaticFiles
+from src.routes import auth, contacts
 
 app = FastAPI()
 
-app.include_router(auth.router, prefix="/auth", tags=["auth"])
-app.include_router(contacts.router, prefix="/api", tags=["contacts"])
+# Include routers for authentication and contacts
+app.include_router(auth.router, prefix="/auth")
+app.include_router(contacts.router, prefix="/api")
 
-#HTML to check API
-app.mount("/static", StaticFiles(directory="static"), name="static")
+# Serve static HTML files - adjusting path to the static folder correctly
+static_path = os.path.join(os.path.dirname(__file__), 'static')
+
+if not os.path.exists(static_path):
+    raise RuntimeError(f"Static directory '{static_path}' does not exist. Please ensure the correct path is set.")
+
+app.mount("/static", StaticFiles(directory=static_path), name="static")
